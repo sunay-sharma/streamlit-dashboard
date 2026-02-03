@@ -3,52 +3,66 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-st.set_page_config(page_title="Creative Data Dashboard", layout="wide")
+st.set_page_config(
+    page_title="Streamlit Data Dashboard",
+    layout="wide"
+)
 
-# ---------- Custom Styling ----------
-st.markdown("""
-<style>
-.main { background-color: #0E1117; }
-h1, h2, h3 { color: #00FFAA; }
-div[data-testid="metric-container"] {
-    background-color: #1f2937;
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0px 0px 10px #00ffaa;
-}
-</style>
-""", unsafe_allow_html=True)
+st.title("📊 Streamlit Data Visualization Dashboard")
 
-st.title("🚀 Creative Data Analytics Dashboard")
-st.markdown("**Interactive dashboard built using Streamlit**")
+# -------------------------
+# Load Data
+# -------------------------
+@st.cache_data
+def load_data():
+    return pd.read_csv("data.csv")
 
-uploaded_file = st.file_uploader("📂 Upload CSV file", type="csv")
+df = load_data()
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+st.subheader("Dataset Preview")
+st.dataframe(df.head())
 
-    st.subheader("📊 Key Metrics")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Rows", df.shape[0])
-    c2.metric("Total Columns", df.shape[1])
-    c3.metric("Missing Values", df.isnull().sum().sum())
+# -------------------------
+# Sidebar
+# -------------------------
+st.sidebar.header("Filters")
+numeric_cols = df.select_dtypes(include="number").columns
+selected_col = st.sidebar.selectbox("Select Numeric Column", numeric_cols)
 
-    st.subheader("🔍 Data Preview")
-    st.dataframe(df.head(15))
+# -------------------------
+# KPIs
+# -------------------------
+st.subheader("Key Metrics")
+c1, c2, c3 = st.columns(3)
 
-    st.subheader("📈 Summary Statistics")
-    st.write(df.describe())
+c1.metric("Mean", f"{df[selected_col].mean():.2f}")
+c2.metric("Max", f"{df[selected_col].max():.2f}")
+c3.metric("Min", f"{df[selected_col].min():.2f}")
 
-    num_cols = df.select_dtypes(include=["int64", "float64"]).columns
+# -------------------------
+# Charts
+# -------------------------
+st.subheader("Visualizations")
 
-    if len(num_cols) > 0:
-        col = st.selectbox("Select numeric column", num_cols)
+col1, col2 = st.columns(2)
 
-        fig, ax = plt.subplots()
-        sns.histplot(df[col], bins=25, kde=True, ax=ax)
-        st.pyplot(fig)
+with col1:
+    fig, ax = plt.subplots()
+    ax.plot(df[selected_col])
+    ax.set_title(f"Line Chart – {selected_col}")
+    st.pyplot(fig)
 
-        st.line_chart(df[col])
+with col2:
+    fig, ax = plt.subplots()
+    ax.hist(df[selected_col], bins=20)
+    ax.set_title(f"Histogram – {selected_col}")
+    st.pyplot(fig)
 
-else:
-    st.info("⬆️ Upload a CSV file to begin")
+# -------------------------
+# Correlation Heatmap
+# -------------------------
+st.subheader("Correlation Heatmap")
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(df[numeric_cols].corr(), annot=True, cmap="coolwarm")
+st.pyplot(fig)
